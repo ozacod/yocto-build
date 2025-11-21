@@ -1,0 +1,39 @@
+services:
+  yocto:
+    build:
+      context: .
+      args:
+        - USER_ID=${USER_ID:-1000}
+        - GROUP_ID=${GROUP_ID:-1000}
+
+    # Mount the named volume to the workspace
+    volumes:
+      - yocto_vol:/home/ubuntu/workspace
+
+    working_dir: /home/ubuntu/workspace
+    stdin_open: true
+    tty: true
+
+    # Startup Logic:
+    # 1. Take ownership of the volume (volumes often default to root ownership)
+    # 2. Check if 'poky' exists.
+    # 3. Clone only if missing.
+    command: >
+      bash -c "
+        echo 'Fixing volume permissions...'
+        sudo chown -R ubuntu:ubuntu /home/ubuntu/workspace
+        
+        if [ ! -d 'poky' ]; then
+          echo 'Volume is empty. Cloning Poky...'
+          git clone -b scarthgap git://git.yoctoproject.org/poky
+        else
+          echo 'Poky detected in volume. Skipping clone.'
+        fi
+        
+        echo 'Ready!'
+        bash
+      "
+
+# Declare the named volume
+volumes:
+  yocto_vol:
